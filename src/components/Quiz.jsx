@@ -4,6 +4,7 @@ import { Notebook } from "lucide-react";
 import { Dot } from "lucide-react";
 
 const Quiz = ({ questions }) => {
+  // State variables to manage quiz progress and user data
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
   const [score, setScore] = useState(0);
@@ -14,10 +15,13 @@ const Quiz = ({ questions }) => {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizHistory, setQuizHistory] = useState([]);
 
+  // Display message if there are no quiz questions available
+
   if (!questions || questions.length === 0) {
     return <p className="text-xl">No questions available.</p>;
   }
 
+  // Function to open IndexedDB for storing quiz results
   const openQuizDB = async () => {
     return openDB("quizDB", 1, {
       upgrade(db) {
@@ -31,15 +35,17 @@ const Quiz = ({ questions }) => {
     });
   };
 
-  useEffect(() => {
+  // Function to start the quiz and manage countdown timer
+  const quizStart = () => {
     if (timeLeft > 0 && !quizFinished) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0) {
       handleNextQuestion();
     }
-  }, [timeLeft, quizFinished]);
+  };
 
+  // Effect to save quiz results and fetch previous results when quiz ends
   useEffect(() => {
     if (quizFinished) {
       saveQuizResult({
@@ -52,12 +58,15 @@ const Quiz = ({ questions }) => {
     fetchQuizResults();
   }, [quizFinished]);
 
-  const percent = score / 10;
-  const finalPercent = percent * 100;
-
+  // Function to handle quiz start
   const handleStartQuiz = () => {
     setQuizStarted(true);
+    quizStart();
   };
+
+  // Function to handle user answers and calculate percentage
+  const percent = score / 10;
+  const finalPercent = percent * 100;
 
   const handleAnswer = (answer) => {
     const isCorrect = questions[currentQuestion].correctAnswer === answer;
@@ -69,6 +78,7 @@ const Quiz = ({ questions }) => {
     handleNextQuestion();
   };
 
+  // Function to proceed to the next question
   const handleNextQuestion = () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
@@ -79,10 +89,12 @@ const Quiz = ({ questions }) => {
     }
   };
 
+  // Function to handle text-based answers
   const handleTextAnswer = () => {
     handleAnswer(textAnswer);
   };
 
+  // Function to save quiz results in IndexedDB
   const saveQuizResult = async (result) => {
     const db = await openQuizDB();
     const tx = db.transaction("results", "readwrite");
@@ -91,6 +103,7 @@ const Quiz = ({ questions }) => {
     await tx.done;
   };
 
+  // Function to fetch previous quiz results from IndexedDB
   const fetchQuizResults = async () => {
     const db = await openQuizDB();
     const tx = db.transaction("results", "readonly");
@@ -100,10 +113,11 @@ const Quiz = ({ questions }) => {
     setQuizHistory(results);
   };
 
+  // Initial quiz screen before starting the test
   if (!quizStarted) {
     return (
       <div className="flex overflow-hidden">
-        <div className="w-96 sm:block hidden p-4 bg-gray-800 text-white scroll-auto ">
+        <div className="w-96 sm:block hidden border-r border-neutral-700 p-4 backdrop-blur-2xl bg-neutral-600/20 text-white scroll-auto ">
           <h2 className="text-xl font-bold mb-4">Quiz History</h2>
           {quizHistory.length === 0 ? (
             <p>No previous quiz results.</p>
@@ -111,7 +125,7 @@ const Quiz = ({ questions }) => {
             quizHistory.map((result, index) => (
               <details
                 key={index}
-                className="border border-gray-600 p-2 mb-2 bg-gray-700 rounded-lg"
+                className="border border-neutral-600 p-2 mb-2 bg-neutral-700 rounded-lg"
               >
                 <summary className="cursor-pointer font-semibold">
                   Quiz {result.id} - Score: {result.score}/
@@ -167,6 +181,7 @@ const Quiz = ({ questions }) => {
     );
   }
 
+  // Dashboard after finishing quiz to show score ans previous answers
   if (quizFinished) {
     return (
       <div className="p-4 mt-24 w-full sm:w-1/2">
@@ -224,6 +239,7 @@ const Quiz = ({ questions }) => {
     );
   }
 
+  // Quiz interface after starting the test
   return (
     <div className="w-screen h-screen flex items-center justify-center">
       <div className="p-4 w-3/4 sm:w-1/4 border-neutral-700 text-white rounded-xl backdrop-blur-xl bg-neutral-100/10">
